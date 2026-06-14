@@ -28,7 +28,12 @@ public class MyPluginPlugin extends BasePlugin {
         // 注册错题本自定义资源 + 索引（必须指定索引，否则 insert 时报错）
         schemeManager.register(MistakeEntry.class,
             (run.halo.app.extension.index.IndexSpecs<MistakeEntry> specs) -> {
-                specs.add(run.halo.app.extension.index.IndexSpecs.single("metadata.name", String.class));
+                // 必须设置 indexFunc，否则 SingleValueBuilder.build() 会断言失败
+                specs.add(run.halo.app.extension.index.IndexSpecs
+                    .<MistakeEntry, String>single("metadata.name", String.class)
+                    .indexFunc(e -> e.getMetadata() != null
+                        ? e.getMetadata().getName() : null)
+                );
             }
         );
         System.out.println("✅ MistakeEntry scheme + indices registered");
