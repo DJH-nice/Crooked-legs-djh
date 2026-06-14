@@ -7,7 +7,7 @@ import run.halo.app.extension.index.IndexSpecs;
 import run.halo.app.plugin.event.PluginStartedEvent;
 
 /**
- * 注册错题本自定义资源 Scheme 和索引，使 Halo 能识别、存储和索引 MistakeEntry 类型。
+ * 注册错题本自定义资源 Scheme 和索引。
  */
 @Component
 public class MistakeEntrySchemeRegister {
@@ -20,11 +20,9 @@ public class MistakeEntrySchemeRegister {
 
     @EventListener(PluginStartedEvent.class)
     void onPluginStarted() {
-        // 必须使用带 IndexSpecs 的 register，否则 DefaultIndicesManager.get() 返回 null
         schemeManager.register(MistakeEntry.class,
-            (IndexSpecs<MistakeEntry> specs) -> {
-                // 至少要有一个 index spec，否则 indicesMap 不初始化
-                specs.add("metadata.name");
+            (IndexSpecs<MistakeEntry> indexSpecs) -> {
+                indexSpecs.add(IndexSpecs.single("metadata.name", String.class));
             }
         );
         System.out.println("✅ MistakeEntry scheme + indices registered");
