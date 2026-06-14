@@ -2,6 +2,7 @@ package djh.examole.myplugin.model;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import lombok.ToString;
 import run.halo.app.extension.AbstractExtension;
 import run.halo.app.extension.GVK;
@@ -10,18 +11,21 @@ import run.halo.app.extension.GVK;
  * 错题本 - 自定义资源模型
  */
 @Data
+@NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-@GVK(group = "my-plugin.examole.djh", version = "v1alpha1", kind = "MistakeEntry", plural = "mistake-entries", singular = "mistake-entry")
+@GVK(group = "my-plugin.examole.djh", version = "v1alpha1", kind = "MistakeEntry",
+     plural = "mistake-entries", singular = "mistake-entry")
 public class MistakeEntry extends AbstractExtension {
 
     private MistakeEntrySpec spec;
 
     @Data
+    @NoArgsConstructor
     public static class MistakeEntrySpec {
 
         /**
-         * 科目：数学、语文、英语、物理、化学等
+         * 科目：自由输入，不限制学科
          */
         private String subject;
 

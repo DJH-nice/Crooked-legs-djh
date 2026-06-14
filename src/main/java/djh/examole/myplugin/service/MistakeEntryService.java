@@ -84,6 +84,13 @@ public class MistakeEntryService {
         // 确保 metadata 不为 null（否则 client.create 会 NPE）
         if (entry.getMetadata() == null) {
             entry.setMetadata(new run.halo.app.extension.Metadata());
+        // 确保 apiVersion 和 kind 不为 null
+        if (entry.getApiVersion() == null) {
+            entry.setApiVersion("my-plugin.examole.djh/v1alpha1");
+        }
+        if (entry.getKind() == null) {
+            entry.setKind("MistakeEntry");
+        }
         }
         return client.create(entry);
     }
