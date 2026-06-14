@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>错题本插件预览</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8fafc;color:#1f2937}
+.app{padding:20px;max-width:1200px;margin:0 auto}
+h1{font-size:24px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
+.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500}
+.btn-primary{background:#3b82f6;color:#fff}
+.btn-secondary{background:#e5e7eb;color:#374151}
+.btn-danger{background:#ef4444;color:#fff}
+.nav{display:flex;gap:8px;margin-bottom:16px;border-bottom:2px solid #e5e7eb;padding-bottom:12px}
+.nav-btn{padding:8px 16px;border:none;background:transparent;cursor:pointer;font-size:14px;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-14px}
+.nav-btn.active{color:#3b82f6;border-bottom-color:#3b82f6;font-weight:600}
+.card{background:#fff;border-radius:8px;padding:16px;margin-bottom:12px;border:1px solid #e5e7eb}
+.card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:500;margin-right:6px}
+.badge-red{background:#fee2e2;color:#dc2626}
+.badge-orange{background:#ffedd5;color:#ea580c}
+.badge-green{background:#dcfce7;color:#16a34a}
+.badge-blue{background:#dbeafe;color:#2563eb}
+.badge-gray{background:#f3f4f6;color:#6b7280}
+.flex{display:flex}.gap-2{gap:8px}.gap-4{gap:16px}.items-center{align-items:center}
+.justify-between{justify-content:space-between}.flex-wrap{flex-wrap:wrap}
+.mb-4{margin-bottom:16px}.mt-2{margin-top:8px}.mt-4{margin-top:16px}
+.text-sm{font-size:13px}.text-xs{font-size:11px}.text-gray{color:#6b7280}
+.font-bold{font-weight:700}
+.line-clamp-2{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:#fff;border-radius:8px;padding:20px;text-align:center;border:1px solid #e5e7eb}
+.stat-num{font-size:32px;font-weight:700}
+.stat-label{font-size:13px;color:#6b7280;margin-top:4px}
+/* Heatmap */
+.heatmap{overflow-x:auto;padding:8px 0}
+.heatmap-inner{display:inline-flex;flex-direction:column;gap:2px}
+.heatmap-weeks{display:flex;gap:3px}
+.heatmap-week{display:flex;flex-direction:column;gap:3px}
+.heatmap-cell{width:14px;height:14px;border-radius:3px;cursor:pointer;transition:all .1s;position:relative}
+.heatmap-cell:hover{outline:2px solid #3b82f6;outline-offset:1px;z-index:10}
+.level-0{background:#ebedf0}.level-1{background:#9be9a8}
+.level-2{background:#40c463}.level-3{background:#30a14e}.level-4{background:#216e39}
+.legend{display:flex;align-items:center;gap:4px;font-size:11px;color:#9ca3af}
+.legend-box{width:14px;height:14px;border-radius:3px}
+.month-labels{display:flex;font-size:10px;color:#9ca3af;margin-bottom:4px;padding-left:0}
+.month-labels span{min-width:28px}
+.weekday-labels{display:flex;font-size:10px;color:#9ca3af;margin-top:4px}
+.weekday-labels span{width:14px;text-align:center;display:inline-block}
+/* Tooltip */
+.tooltip{position:fixed;background:#1f2937;color:#f9fafb;padding:6px 10px;border-radius:6px;font-size:12px;pointer-events:none;z-index:999;white-space:pre;line-height:1.5;transform:translate(-50%,-100%)}
+/* Form */
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:13px;font-weight:500;margin-bottom:4px;color:#374151}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;outline:none}
+.form-group textarea{min-height:80px;resize:vertical}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.2)}
+.form-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#dbeafe;color:#1d4ed8;border-radius:4px;font-size:12px;margin:2px}
+.tag-remove{cursor:pointer;font-weight:700;opacity:.5}.tag-remove:hover{opacity:1}
+.item-status{cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:500}
+.status-unmastered{background:#fee2e2;color:#dc2626}
+.status-reviewing{background:#ffedd5;color:#ea580c}
+.status-mastered{background:#dcfce7;color:#16a34a}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:768px){.detail-grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="app">
+    <h1>📖 错题本插件
+      <span style="font-size:14px;font-weight:400;color:#6b7280">Halo 2.x Plugin Preview v1.0</span>
+    </h1>
+
+    <!-- Navigation -->
+    <div class="nav">
+      <button class="nav-btn" :class="{active:view==='list'}" @click="view='list'">📋 错题列表</button>
+      <button class="nav-btn" :class="{active:view==='stats'}" @click="view='stats'">📊 学习统计</button>
+      <button class="nav-btn" :class="{active:view==='form'}" @click="newEntry()">➕ 添加错题</button>
+    </div>
+
+    <!-- List View -->
+    <div v-if="view==='list'">
+      <div class="flex gap-4 mb-4 items-center flex-wrap">
+        <select v-model="filterSubject" @change="page=1" class="btn btn-secondary">
+          <option value="">全部科目</option>
+          <option v-for="s in subjects" :value="s">{{s}}</option>
+        </select>
+        <select v-model="filterStatus" @change="page=1" class="btn btn-secondary">
+          <option value="">全部状态</option>
+          <option value="unmastered">未掌握</option>
+          <option value="reviewing">复习中</option>
+          <option value="mastered">已掌握</option>
+        </select>
+        <span class="text-sm text-gray">共 {{filteredEntries.length}} 条</span>
+        <div style="flex:1"></div>
+        <button class="btn btn-primary" @click="newEntry()">➕ 添加错题</button>
+      </div>
+
+      <div v-if="pagedEntries.length===0" class="card" style="text-align:center;padding:60px 20px">
+        <div style="font-size:48px;margin-bottom:12px">📝</div>
+        <div style="font-weight:600;margin-bottom:8px">还没有错题记录</div>
+        <div class="text-sm text-gray">点击「添加错题」开始记录吧！</div>
+      </div>
+
+      <div v-for="e in pagedEntries" :key="e.id" class="card" @click="viewDetail(e)" style="cursor:pointer">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="badge badge-blue">{{e.subject||'未分类'}}</span>
+          <span class="item-status" :class="'status-'+e.status" @click.stop="toggleStatus(e)">
+            {{e.status==='unmastered'?'未掌握':e.status==='reviewing'?'复习中':'已掌握'}}
+          </span>
+          <span class="badge" :class="e.difficulty==='easy'?'badge-green':e.difficulty==='hard'?'badge-red':'badge-orange'">
+            {{e.difficulty==='easy'?'简单':e.difficulty==='hard'?'困难':'中等'}}
+          </span>
+          <span class="badge badge-gray">{{sourceLabel(e.source)}}</span>
+        </div>
+        <div class="font-bold line-clamp-2">{{e.question}}</div>
+        <div v-if="e.knowledgePoint" class="text-sm text-gray mt-2">📌 {{e.knowledgePoint}}</div>
+        <div v-if="e.tags&&e.tags.length" class="flex gap-2 mt-2 flex-wrap">
+          <span v-for="t in e.tags" :key="t" class="badge badge-gray">{{t}}</span>
+        </div>
+        <div class="flex gap-2 mt-2" @click.stop>
+          <button class="btn btn-secondary" style="font-size:12px;padding:4px 8px" @click="editEntry(e)">✏️ 编辑</button>
+          <button class="btn btn-danger" style="font-size:12px;padding:4px 8px" @click="deleteEntry(e)">🗑️ 删除</button>
+        </div>
+      </div>
+
+      <div v-if="filteredEntries.length>pageSize" class="flex justify-between items-center mt-4">
+        <span class="text-sm text-gray">第 {{page}}/{{totalPages}} 页</span>
+        <div class="flex gap-2">
+          <button class="btn btn-secondary" :disabled="page<=1" @click="page--">上一页</button>
+          <button class="btn btn-secondary" :disabled="page>=totalPages" @click="page++">下一页</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats View -->
+    <div v-if="view==='stats'">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num" style="color:#3b82f6">{{totalAdded}}</div><div class="stat-label">总记录数</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:#16a34a">{{totalMastered}}</div><div class="stat-label">已掌握</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:#ea580c">{{currentStreak}}</div><div class="stat-label">连续打卡天数</div></div>
+      </div>
+      <div class="card">
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-sm text-gray">{{totalAdded}} 条记录（过去 365 天）</span>
+          <div class="legend"><span>少</span><span class="legend-box level-0"></span><span class="legend-box level-1"></span><span class="legend-box level-2"></span><span class="legend-box level-3"></span><span class="legend-box level-4"></span><span>多</span></div>
+        </div>
+        <div class="heatmap">
+          <div class="heatmap-inner">
+            <div class="month-labels"><span v-for="(m,i) in monthLabels" :key="i">{{m}}</span></div>
+            <div class="heatmap-weeks">
+              <div v-for="(week,wi) in heatmapWeeks" :key="wi" class="heatmap-week">
+                <div v-for="(cell,di) in week" :key="di"
+                  :class="['heatmap-cell','level-'+cell.level]"
+                  @mouseenter="tooltip={show:true,text:cell.label,x:$event.clientX,y:$event.clientY}"
+                  @mouseleave="tooltip.show=false"
+                ></div>
+              </div>
+            </div>
+            <div class="weekday-labels"><span></span><span>一</span><span></span><span>三</span><span></span><span>五</span><span></span></div>
+          </div>
+        </div>
+      </div>
+      <div v-if="tooltip.show" class="tooltip" :style="{left:tooltip.x+'px',top:(tooltip.y-10)+'px'}">{{tooltip.text}}</div>
+    </div>
+
+    <!-- Detail View -->
+    <div v-if="view==='detail' && currentEntry">
+      <button class="btn btn-secondary mb-4" @click="view='list'">← 返回列表</button>
+      <div class="flex items-center gap-2 mb-4">
+        <span class="badge badge-blue">{{currentEntry.subject||'未分类'}}</span>
+        <span class="item-status" :class="'status-'+currentEntry.status" @click="toggleStatus(currentEntry)">{{statusLabel(currentEntry.status)}}</span>
+        <span class="badge" :class="currentEntry.difficulty==='easy'?'badge-green':currentEntry.difficulty==='hard'?'badge-red':'badge-orange'">{{difficultyLabel(currentEntry.difficulty)}}</span>
+        <span class="badge badge-gray">{{sourceLabel(currentEntry.source)}}</span>
+      </div>
+      <div class="card"><h3 style="margin-bottom:8px">📝 题目</h3><div style="white-space:pre-wrap">{{currentEntry.question}}</div></div>
+      <div class="detail-grid" style="margin:16px 0">
+        <div class="card"><h3 style="margin-bottom:8px;color:#dc2626">❌ 错误答案</h3><div style="white-space:pre-wrap">{{currentEntry.wrongAnswer||'未填写'}}</div></div>
+        <div class="card"><h3 style="margin-bottom:8px;color:#16a34a">✅ 正确答案</h3><div style="white-space:pre-wrap">{{currentEntry.correctAnswer||'未填写'}}</div></div>
+      </div>
+      <div class="card" v-if="currentEntry.analysis" style="margin-bottom:16px"><h3 style="margin-bottom:8px">📖 错题分析</h3><div style="white-space:pre-wrap">{{currentEntry.analysis}}</div></div>
+      <div v-if="currentEntry.knowledgePoint||currentEntry.tags?.length" class="detail-grid" style="margin-bottom:16px">
+        <div class="card" v-if="currentEntry.knowledgePoint"><h3 style="margin-bottom:8px">📌 知识点</h3>{{currentEntry.knowledgePoint}}</div>
+        <div class="card" v-if="currentEntry.tags?.length"><h3 style="margin-bottom:8px">🏷️ 标签</h3><span v-for="t in currentEntry.tags" :key="t" class="badge badge-gray" style="margin:2px">{{t}}</span></div>
+      </div>
+      <div class="card" v-if="currentEntry.remark"><h3 style="margin-bottom:8px">📋 备注</h3><div style="white-space:pre-wrap">{{currentEntry.remark}}</div></div>
+    </div>
+
+    <!-- Form View -->
+    <div v-if="view==='form'">
+      <button class="btn btn-secondary mb-4" @click="view='list'">← 返回列表</button>
+      <div class="card" style="max-width:700px">
+        <h2 style="margin-bottom:16px">{{editingId?'编辑错题':'添加错题'}}</h2>
+        <div class="form-row">
+          <div class="form-group"><label>科目 *</label><select v-model="form.subject"><option v-for="s in subjects" :value="s">{{s}}</option></select></div>
+          <div class="form-group"><label>难度</label><select v-model="form.difficulty"><option value="easy">简单</option><option value="medium" selected>中等</option><option value="hard">困难</option></select></div>
+          <div class="form-group"><label>来源</label><select v-model="form.source"><option value="exam">考试</option><option value="homework">作业</option><option value="quiz">测验</option><option value="other">其他</option></select></div>
+        </div>
+        <div class="form-group"><label>题目 *</label><textarea v-model="form.question" placeholder="请输入题目内容..."></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label>错误答案</label><textarea v-model="form.wrongAnswer" placeholder="你的错误答案..."></textarea></div>
+          <div class="form-group"><label>正确答案</label><textarea v-model="form.correctAnswer" placeholder="正确的答案..."></textarea></div>
+        </div>
+        <div class="form-group"><label>知识点</label><input v-model="form.knowledgePoint" placeholder="如：二次函数、三角函数..."></div>
+        <div class="form-group"><label>标签</label>
+          <div class="flex gap-2 items-center">
+            <input v-model="newTag" @keyup.enter="addTag" placeholder="输入后按回车添加" style="flex:1">
+          </div>
+          <div class="flex gap-2 mt-2 flex-wrap">
+            <span v-for="t in form.tags" :key="t" class="tag">{{t}}<span class="tag-remove" @click="form.tags=form.tags.filter(x=>x!==t)">×</span></span>
+          </div>
+        </div>
+        <div class="form-group"><label>错题分析</label><textarea v-model="form.analysis" placeholder="分析错误原因、解题思路..."></textarea></div>
+        <div class="form-group"><label>备注</label><input v-model="form.remark" placeholder="其他补充信息..."></div>
+        <div class="flex gap-2" style="justify-content:flex-end">
+          <button class="btn btn-secondary" @click="view='list'">取消</button>
+          <button class="btn btn-primary" @click="saveEntry">{{editingId?'更新':'添加'}}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const {createApp,ref,computed,onMounted}=Vue
+createApp({setup(){
+  const subjects=['数学','语文','英语','物理','化学','生物','历史','地理','政治','其他']
+  const now=new Date()
+
+  // Mock daily stats for 365 days
+  function genMockStats(){
+    const stats={},start=new Date(now);start.setDate(start.getDate()-364)
+    for(let d=new Date(start);d<=now;d.setDate(d.getDate()+1)){
+      const ds=d.toISOString().split('T')[0]
+      const r=Math.random()
+      stats[ds]=r<0.25?0:r<0.6?1:r<0.85?2:r<0.95?4:6
+    }
+    return stats
+  }
+
+  const entries=ref([
+    {id:'1',subject:'数学',question:'已知函数 f(x)=x²+2x-3，求 f(x) 在区间 [-4, 2] 上的最大值和最小值。',wrongAnswer:'最大值 5，最小值 -4',correctAnswer:'最大值 5，最小值 -4（当 x=-1 时）',analysis:'错误原因：没有验证对称轴是否在区间内。f(x)=(x+1)²-4，对称轴 x=-1 在区间内，所以最小值在 x=-1 处取得 f(-1)=-4。',status:'mastered',difficulty:'medium',source:'exam',knowledgePoint:'二次函数最值',tags:['函数','最值'],remark:'注意验证对称轴是否在定义域内'},
+    {id:'2',subject:'英语',question:'The committee ___ divided in their opinions about the proposal.\nA. is  B. are  C. has  D. have',wrongAnswer:'A. is',correctAnswer:'B. are',analysis:'committee 是集合名词，此处强调成员个体意见分歧，应用复数谓语 are。如果强调整体用单数。',status:'reviewing',difficulty:'easy',source:'quiz',knowledgePoint:'主谓一致 - 集合名词',tags:['语法'],remark:''},
+    {id:'3',subject:'物理',question:'一个质量为 2kg 的物体从 10m 高处自由下落，求落地时的速度。（g=10m/s²）',wrongAnswer:'v=10√2 m/s',correctAnswer:'v=10√2 m/s ≈ 14.14 m/s',analysis:'用 v²=2gh 或机械能守恒 mgh=½mv²，v=√(2gh)=√200=10√2 m/s。计算过程正确！',status:'mastered',difficulty:'easy',source:'homework',knowledgePoint:'自由落体运动',tags:['力学'],remark:''},
+    {id:'4',subject:'语文',question:'下列句子中，没有语病的一项是：\nA. 通过这次学习，使我提高了认识\nB. 他的写作水平有了明显的提高\nC. 我们一定要减少不必要的浪费\nD. 这件事的发生，原因是由多方面造成的',wrongAnswer:'C',correctAnswer:'B',analysis:'A缺主语（介词掩盖主语），C"减少"和"不必要的"语义重复，D句式杂糅（"原因是..."和"由...造成"）。B表述正确。',status:'unmastered',difficulty:'hard',source:'exam',knowledgePoint:'病句辨析',tags:['语言运用'],remark:'需要多练习病句题，总结常见病句类型'},
+    {id:'5',subject:'化学',question:'下列物质中，属于电解质的是：\nA. 蔗糖  B. 酒精  C. 氯化钠溶液  D. 熔融氯化钠',wrongAnswer:'C',correctAnswer:'D',analysis:'电解质是在水溶液或熔融状态下能导电的化合物。NaCl溶液虽然导电但是混合物不是化合物；熔融NaCl既是化合物又能导电。蔗糖和酒精是非电解质。',status:'unmastered',difficulty:'easy',source:'quiz',knowledgePoint:'电解质概念',tags:['概念辨析'],remark:'重点区分：电解质vs非电解质，化合物vs混合物'},
+  ])
+
+  const view=ref('list')
+  const currentEntry=ref(null)
+  const editingId=ref(null)
+  const filterSubject=ref('')
+  const filterStatus=ref('')
+  const page=ref(1);const pageSize=10
+  const tooltip=ref({show:false,text:'',x:0,y:0})
+  const mockStats=genMockStats()
+  const newTag=ref('')
+
+  const form=ref({subject:'数学',question:'',wrongAnswer:'',correctAnswer:'',analysis:'',difficulty:'medium',source:'exam',knowledgePoint:'',tags:[],remark:''})
+
+  const filteredEntries=computed(()=>entries.value.filter(e=>
+    (!filterSubject.value||e.subject===filterSubject.value)&&
+    (!filterStatus.value||e.status===filterStatus.value)
+  ))
+  const pagedEntries=computed(()=>filteredEntries.value.slice((page.value-1)*pageSize,page.value*pageSize))
+  const totalPages=computed(()=>Math.ceil(filteredEntries.value.length/pageSize))
+
+  const totalAdded=computed(()=>Object.values(mockStats).reduce((a,b)=>a+b,0))
+  const totalMastered=computed(()=>Object.values(mockStats).filter(v=>v>2).length)
+  const currentStreak=computed(()=>{
+    let s=0
+    const dates=Object.keys(mockStats).sort().reverse()
+    const today=new Date().toISOString().split('T')[0]
+    for(const d of dates){if(d>today)continue;if(mockStats[d]>0)s++;else break}
+    return s
+  })
+
+  const heatmapWeeks=computed(()=>{
+    const cells=[]
+    const start=new Date(now);start.setDate(start.getDate()-364)
+    for(let d=new Date(start);d<=now;d.setDate(d.getDate()+1)){
+      const ds=d.toISOString().split('T')[0],v=mockStats[ds]||0
+      cells.push({date:ds,value:v,level:v===0?0:v===1?1:v<=2?2:v<=4?3:4,label:ds+'\n'+v+' 条记录'})
+    }
+    const weeks=[]
+    const firstDay=start.getDay()
+    let week=[]
+    for(let i=0;i<firstDay;i++)week.push({date:'',value:-1,level:-1,label:''})
+    for(const c of cells){week.push(c);if(week.length===7){weeks.push(week);week=[]}}
+    if(week.length>0)weeks.push(week)
+    return weeks
+  })
+
+  const monthLabels=computed(()=>{
+    const labels=[],names=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
+    let col=0,lastM=-1
+    for(const w of heatmapWeeks.value){
+      const first=w.find(c=>c.date)
+      if(first){const m=new Date(first.date).getMonth();if(m!==lastM){labels.push(names[m]);lastM=m}else labels.push('')}
+      else labels.push('')
+      col++
+    }
+    return labels
+  })
+
+  function newEntry(){editingId.value=null;form.value={subject:'数学',question:'',wrongAnswer:'',correctAnswer:'',analysis:'',difficulty:'medium',source:'exam',knowledgePoint:'',tags:[],remark:''};view.value='form'}
+  function editEntry(e){editingId.value=e.id;form.value={...e};view.value='form'}
+  function viewDetail(e){currentEntry.value=e;view.value='detail'}
+  function saveEntry(){
+    if(!form.value.question.trim()){alert('请输入题目');return}
+    if(editingId.value){
+      const idx=entries.value.findIndex(e=>e.id===editingId.value)
+      if(idx>=0){entries.value[idx]={...entries.value[idx],...form.value};entries.value=[...entries.value]}
+    }else{
+      entries.value=[{id:Date.now().toString(),status:'unmastered',...form.value},...entries.value]
+    }
+    view.value='list';editingId.value=null
+  }
+  function deleteEntry(e){if(confirm('确定删除这道错题？'))entries.value=entries.value.filter(x=>x.id!==e.id)}
+  function toggleStatus(e){
+    const order=['unmastered','reviewing','mastered'];let i=order.indexOf(e.status)
+    e.status=order[(i+1)%3];entries.value=[...entries.value]
+  }
+  function addTag(){const t=newTag.value.trim();if(t&&!form.value.tags.includes(t)){form.value.tags.push(t)};newTag.value=''}
+  function statusLabel(s){return s==='unmastered'?'未掌握':s==='reviewing'?'复习中':'已掌握'}
+  function difficultyLabel(d){return d==='easy'?'简单':d==='hard'?'困难':'中等'}
+  function sourceLabel(s){return s==='exam'?'考试':s==='homework'?'作业':s==='quiz'?'测验':'其他'}
+
+  return{view,entries,filterSubject,filterStatus,page,pageSize,filteredEntries,pagedEntries,totalPages,tooltip,form,editingId,newTag,currentEntry,subjects,totalAdded,totalMastered,currentStreak,heatmapWeeks,monthLabels,newEntry,editEntry,viewDetail,saveEntry,deleteEntry,toggleStatus,addTag,statusLabel,difficultyLabel,sourceLabel}
+}}).mount('#app')
+</script>
+</body>
+</html>

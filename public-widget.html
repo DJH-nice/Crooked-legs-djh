@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>错题本</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8fafc;color:#1f2937;padding:20px}
+.container{max-width:900px;margin:0 auto}
+.card{background:#fff;border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.flex{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.filter-bar{margin-bottom:20px}
+select{padding:6px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px}
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:500}
+.badge-blue{background:#dbeafe;color:#1d4ed8}
+.badge-green{background:#dcfce7;color:#16a34a}
+.badge-orange{background:#fff7ed;color:#ea580c}
+.badge-red{background:#fef2f2;color:#dc2626}
+.badge-gray{background:#f3f4f6;color:#6b7280}
+.status-dot{display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;padding:2px 8px;border-radius:12px}
+.status-unmastered{background:#fef2f2;color:#dc2626}
+.status-reviewing{background:#fff7ed;color:#ea580c}
+.status-mastered{background:#dcfce7;color:#16a34a}
+.question-title{font-weight:600;font-size:16px;margin:8px 0;line-height:1.5}
+.meta{margin-top:4px;font-size:13px;color:#6b7280}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.stat-card{text-align:center;padding:20px;border-radius:12px}
+.stat-card h2{font-size:28px;font-weight:700}
+.stat-card p{font-size:13px;color:#6b7280;margin-top:4px}
+.pagination{display:flex;justify-content:center;gap:8px;margin-top:20px}
+.pagination button{padding:6px 16px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer}
+.pagination button:disabled{opacity:.4;cursor:default}
+.pagination button.active{background:#2563eb;color:#fff;border-color:#2563eb}
+.detail-panel{position:fixed;top:0;right:0;width:450px;height:100vh;background:#fff;box-shadow:-4px 0 20px rgba(0,0,0,.1);z-index:1000;overflow-y:auto;padding:24px;transform:translateX(100%);transition:transform .3s}
+.detail-panel.open{transform:translateX(0)}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:999;display:none}
+.overlay.show{display:block}
+.btn-close{position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer}
+.heatmap-legend{display:flex;align-items:center;gap:4px}
+.heatmap-cell{width:13px;height:13px;border-radius:3px}
+.heatmap-cell.l0{background:#ebedf0}.heatmap-cell.l1{background:#9be9a8}
+.heatmap-cell.l2{background:#40c463}.heatmap-cell.l3{background:#30a14e}.heatmap-cell.l4{background:#216e39}
+.loading{text-align:center;padding:40px;color:#9ca3af}
+.section-title{font-size:20px;font-weight:700;margin-bottom:16px}
+.answer-compare{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.answer-box{padding:12px;border-radius:8px;line-height:1.6}
+.answer-wrong{background:#fef2f2;border:1px solid #fecaca}
+.answer-right{background:#f0fdf4;border:1px solid #bbf7d0}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="container">
+    <!-- 选择视图 -->
+    <div class="flex" style="margin-bottom:16px;gap:8px">
+      <button @click="view='list'" :style="{background:view==='list'?'#2563eb':'#fff',color:view==='list'?'#fff':'#374151'}" 
+        style="padding:6px 16px;border:1px solid #d1d5db;border-radius:8px;cursor:pointer">📝 错题列表</button>
+      <button @click="view='stats'" :style="{background:view==='stats'?'#2563eb':'#fff',color:view==='stats'?'#fff':'#374151'}" 
+        style="padding:6px 16px;border:1px solid #d1d5db;border-radius:8px;cursor:pointer">📊 学习统计</button>
+    </div>
+
+    <!-- 列表视图 -->
+    <div v-if="view==='list'">
+      <div class="flex filter-bar">
+        <select v-model="filterSubject" @change="page=1"><option value="">全部科目</option>
+          <option v-for="s in subjects">{{s}}</option></select>
+        <select v-model="filterStatus" @change="page=1"><option value="">全部状态</option>
+          <option value="unmastered">未掌握</option><option value="reviewing">复习中</option><option value="mastered">已掌握</option></select>
+        <span style="color:#6b7280;font-size:13px">共 {{filtered.length}} 条</span>
+      </div>
+      <div v-if="loading" class="loading">加载中...</div>
+      <div v-else-if="paged.length===0" style="text-align:center;padding:60px 20px;color:#9ca3af">
+        <div style="font-size:48px">📝</div><div>暂无错题记录</div></div>
+      <div v-for="e in paged" :key="e.metadata.name" class="card" @click="openDetail(e)" style="cursor:pointer">
+        <div class="flex" style="margin-bottom:6px">
+          <span class="badge badge-blue">{{e.spec.subject||'未分类'}}</span>
+          <span class="status-dot" :class="'status-'+e.spec.status" @click.stop="toggleStatus(e)">
+            {{statusLabel(e.spec.status)}}</span>
+          <span class="badge" :class="diffBadge(e.spec.difficulty)">{{diffLabel(e.spec.difficulty)}}</span>
+        </div>
+        <div class="question-title">{{e.spec.question?.slice(0,100)}}{{e.spec.question?.length>100?'...':''}}</div>
+        <div class="meta" v-if="e.spec.knowledgePoint">📌 {{e.spec.knowledgePoint}}</div>
+      </div>
+      <div class="pagination" v-if="filtered.length>pageSize">
+        <button :disabled="page<=1" @click="page--">上一页</button>
+        <button v-for="p in totalPages" :key="p" @click="page=p" :class="{active:page===p}">{{p}}</button>
+        <button :disabled="page>=totalPages" @click="page++">下一页</button>
+      </div>
+    </div>
+
+    <!-- 统计视图 -->
+    <div v-if="view==='stats'">
+      <div class="stats-grid">
+        <div class="stat-card" style="background:#eff6ff"><h2 style="color:#2563eb">{{totalAdded}}</h2><p>总记录数</p></div>
+        <div class="stat-card" style="background:#f0fdf4"><h2 style="color:#16a34a">{{totalMastered}}</h2><p>已掌握</p></div>
+        <div class="stat-card" style="background:#fff7ed"><h2 style="color:#ea580c">{{currentStreak}}</h2><p>连续打卡天</p></div>
+      </div>
+      <div class="card">
+        <div class="flex" style="justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:13px;color:#6b7280">{{totalAdded}} 条（过去365天）</span>
+          <div class="heatmap-legend"><span style="font-size:11px;margin-right:4px">少</span>
+            <div class="heatmap-cell l0"></div><div class="heatmap-cell l1"></div>
+            <div class="heatmap-cell l2"></div><div class="heatmap-cell l3"></div>
+            <div class="heatmap-cell l4"></div><span style="font-size:11px;margin-left:4px">多</span></div>
+        </div>
+        <div style="overflow-x:auto;padding-bottom:8px">
+          <div style="display:flex;gap:3px">
+            <div v-for="(week,wi) in heatmapWeeks" :key="wi" style="display:flex;flex-direction:column;gap:3px">
+              <div v-for="(cell,di) in week" :key="di" 
+                :class="['heatmap-cell','l'+(cell.level>=0?cell.level:0)]"
+                :title="cell.label" style="cursor:pointer"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 详情面板 -->
+  <div :class="['overlay',detailVisible?'show':'']" @click="closeDetail"></div>
+  <div :class="['detail-panel',detailVisible?'open':'']">
+    <button class="btn-close" @click="closeDetail">✕</button>
+    <template v-if="current">
+      <div class="flex" style="margin-bottom:12px">
+        <span class="badge badge-blue">{{current.spec.subject||'未分类'}}</span>
+        <span class="badge" :class="diffBadge(current.spec.difficulty)">{{diffLabel(current.spec.difficulty)}}</span>
+      </div>
+      <div class="question-title" style="margin-bottom:16px;white-space:pre-wrap">{{current.spec.question}}</div>
+      <div class="answer-compare" style="margin-bottom:16px">
+        <div class="answer-box answer-wrong"><strong>❌ 错误答案</strong><div style="margin-top:4px;white-space:pre-wrap">{{current.spec.wrongAnswer||'未填写'}}</div></div>
+        <div class="answer-box answer-right"><strong>✅ 正确答案</strong><div style="margin-top:4px;white-space:pre-wrap">{{current.spec.correctAnswer||'未填写'}}</div></div>
+      </div>
+      <div v-if="current.spec.analysis" style="margin-bottom:16px">
+        <strong>📖 错题分析</strong><div style="margin-top:4px;white-space:pre-wrap;color:#374151">{{current.spec.analysis}}</div>
+      </div>
+      <div v-if="current.spec.knowledgePoint" style="margin-bottom:16px"><strong>📌 知识点：</strong>{{current.spec.knowledgePoint}}</div>
+      <div v-if="current.spec.tags?.length" class="flex" style="margin-bottom:16px"><strong>🏷️</strong>
+        <span v-for="t in current.spec.tags" class="badge badge-gray">{{t}}</span></div>
+      <div v-if="current.spec.remark" style="margin-bottom:16px"><strong>📋 备注：</strong>{{current.spec.remark}}</div>
+    </template>
+  </div>
+</div>
+
+<script>
+const BASE='http://106.15.58.118:8090/api/plugins/my-plugin/mistakes'
+const {createApp,ref,computed,onMounted}=Vue
+createApp({setup(){
+  const entries=ref([]),loading=ref(true),view=ref('list')
+  const filterSubject=ref(''),filterStatus=ref(''),page=ref(1),pageSize=10
+  const current=ref(null),detailVisible=ref(false)
+  const stats=ref([])
+  const subjects=['数学','语文','英语','物理','化学','生物','历史','地理','政治','其他']
+
+  async function fetch(){loading.value=true
+    try{const r=await fetch(BASE+'?page=1&size=999');entries.value=(await r.json()).items||[]}
+    catch(e){console.error(e)}finally{loading.value=false}}
+  async function fetchStats(){try{const r=await fetch(BASE+'/stats/daily');stats.value=await r.json()}catch(e){}}
+
+  const filtered=computed(()=>entries.value.filter(e=>
+    (!filterSubject.value||e.spec.subject===filterSubject.value)&&
+    (!filterStatus.value||e.spec.status===filterStatus.value)))
+  const paged=computed(()=>filtered.value.slice((page.value-1)*pageSize,page.value*pageSize))
+  const totalPages=computed(()=>Math.ceil(filtered.value.length/pageSize)||1)
+
+  const totalAdded=computed(()=>stats.value.reduce((s,d)=>s+d.added,0))
+  const totalMastered=computed(()=>stats.value.reduce((s,d)=>s+d.mastered,0))
+  const currentStreak=computed(()=>{let s=0;const td=new Date().toISOString().split('T')[0]
+    for(let i=stats.value.length-1;i>=0;i--){if(stats.value[i].date>td)continue
+    if(stats.value[i].added>0)s++;else break}return s})
+
+  const heatmapWeeks=computed(()=>{
+    const today=new Date(),start=new Date(today);start.setDate(start.getDate()-364)
+    const cells=[],smap={};stats.value.forEach(s=>smap[s.date]=s)
+    for(let d=new Date(start);d<=today;d.setDate(d.getDate()+1)){
+      const ds=d.toISOString().split('T')[0],v=(smap[ds]||{}).added||0
+      cells.push({date:ds,value:v,level:v===0?0:v===1?1:v<=2?2:v<=4?3:4,label:ds+'\n'+v+' 条'})}
+    const weeks=[],fd=start.getDay();let wk=[]
+    for(let i=0;i<fd;i++)wk.push({date:'',value:-1,level:-1,label:''})
+    for(const c of cells){wk.push(c);if(wk.length===7){weeks.push(wk);wk=[]}}
+    if(wk.length>0)weeks.push(wk);return weeks
+  })
+
+  async function toggleStatus(e){const order=['unmastered','reviewing','mastered']
+    e.spec.status=order[(order.indexOf(e.spec.status)+1)%3]
+    try{await fetch(BASE+'/'+e.metadata.name+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({status:e.spec.status})})}catch(x){fetch()}}
+
+  function openDetail(e){current.value=e;detailVisible.value=true}
+  function closeDetail(){detailVisible.value=false}
+  function statusLabel(s){return s==='unmastered'?'未掌握':s==='reviewing'?'复习中':'已掌握'}
+  function diffLabel(d){return d==='easy'?'简单':d==='hard'?'困难':'中等'}
+  function diffBadge(d){return d==='easy'?'badge-green':d==='hard'?'badge-red':'badge-orange'}
+
+  onMounted(()=>{fetch();fetchStats()})
+  return{entries,loading,view,filterSubject,filterStatus,page,pageSize,filtered,paged,totalPages,
+    current,detailVisible,stats,subjects,totalAdded,totalMastered,currentStreak,heatmapWeeks,
+    toggleStatus,openDetail,closeDetail,statusLabel,diffLabel,diffBadge}
+}}).mount('#app')
+</script>
+</body>
+</html>

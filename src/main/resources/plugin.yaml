@@ -1,0 +1,22 @@
+# Refer https://docs.halo.run/developer-guide/plugin/basics/manifest
+
+apiVersion: plugin.halo.run/v1alpha1
+kind: Plugin
+metadata:
+  # The name defines how the plugin is invoked, A unique name
+  name: my-plugin
+spec:
+  enabled: true
+  requires: ">=2.22.0"
+  author:
+    name: dongjiahao
+    website: https://github.com/dongjiahao
+  logo: logo.png
+  homepage: https://github.com/dongjiahao/my-plugin#readme
+  repo: https://github.com/dongjiahao/my-plugin
+  issues: https://github.com/dongjiahao/my-plugin/issues
+  displayName: "错题本"
+  description: "错题本插件 - 记录、管理、复习错题，支持按科目分类、掌握状态追踪、难度标注等功能"
+  license:
+    - name: "GPL-3.0"
+      url: "https://github.com/dongjiahao/my-plugin/blob/main/LICENSE"
