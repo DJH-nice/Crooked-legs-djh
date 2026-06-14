@@ -84,6 +84,10 @@ public class MistakeEntryService {
         if (entry.getMetadata() == null) {
             entry.setMetadata(new run.halo.app.extension.Metadata());
         }
+        // 必须设置 name 或 generateName，否则 ReactiveExtensionClient.create 抛 IllegalArgumentException
+        if (entry.getMetadata().getName() == null || entry.getMetadata().getName().isBlank()) {
+            entry.getMetadata().setGenerateName("mistake-entry-");
+        }
         if (entry.getApiVersion() == null || entry.getApiVersion().isBlank()) {
             entry.setApiVersion("my-plugin.examole.djh/v1alpha1");
         }
