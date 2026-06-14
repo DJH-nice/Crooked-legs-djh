@@ -7,3 +7,4 @@ ui/dist/
 *.iml
 .DS_Store
 local.properties
+.github/
