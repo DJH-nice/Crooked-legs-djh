@@ -81,18 +81,21 @@ public class MistakeEntryService {
         if (entry.getSpec().getStatus() == null || entry.getSpec().getStatus().isBlank()) {
             entry.getSpec().setStatus("unmastered");
         }
-        // 确保 metadata 不为 null（否则 client.create 会 NPE）
         if (entry.getMetadata() == null) {
             entry.setMetadata(new run.halo.app.extension.Metadata());
-        // 确保 apiVersion 和 kind 不为 null
-        if (entry.getApiVersion() == null) {
+        }
+        if (entry.getApiVersion() == null || entry.getApiVersion().isBlank()) {
             entry.setApiVersion("my-plugin.examole.djh/v1alpha1");
         }
-        if (entry.getKind() == null) {
+        if (entry.getKind() == null || entry.getKind().isBlank()) {
             entry.setKind("MistakeEntry");
         }
-        }
-        return client.create(entry);
+        System.out.println("CREATE: spec=" + (entry.getSpec() != null) 
+            + " meta=" + (entry.getMetadata() != null)
+            + " apiVer=" + entry.getApiVersion() + " kind=" + entry.getKind());
+        return client.create(entry)
+            .doOnNext(e -> System.out.println("CREATE OK: " + e.getMetadata().getName()))
+            .doOnError(e -> System.err.println("CREATE ERR: " + e.getMessage()));
     }
 
     /**
