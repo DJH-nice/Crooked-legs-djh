@@ -25,10 +25,14 @@ public class MyPluginPlugin extends BasePlugin {
 
     @Override
     public void start() {
-        // 注册错题本自定义资源
-        schemeManager.register(MistakeEntry.class);
-        System.out.println("错题本插件启动成功！");
-        System.out.println("API 路径: /api/plugins/my-plugin/mistakes");
+        // 注册错题本自定义资源 + 索引（必须指定索引，否则 insert 时报错）
+        schemeManager.register(MistakeEntry.class,
+            (run.halo.app.extension.index.IndexSpecs<MistakeEntry> specs) -> {
+                specs.add(run.halo.app.extension.index.IndexSpecs.single("metadata.name", String.class));
+            }
+        );
+        System.out.println("✅ MistakeEntry scheme + indices registered");
+        System.out.println("✅ 错题本插件启动成功！API: /api/plugins/my-plugin/mistakes");
     }
 
     @Override
