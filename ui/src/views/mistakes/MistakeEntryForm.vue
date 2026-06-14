@@ -88,8 +88,6 @@ async function handleSubmit() {
   submitting.value = true
   try {
     const payload = {
-      apiVersion: 'my-plugin.examole.djh/v1alpha1',
-      kind: 'MistakeEntry',
       spec: {
         subject: form.subject.trim(),
         question: form.question.trim(),

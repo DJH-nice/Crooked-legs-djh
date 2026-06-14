@@ -81,6 +81,10 @@ public class MistakeEntryService {
         if (entry.getSpec().getStatus() == null || entry.getSpec().getStatus().isBlank()) {
             entry.getSpec().setStatus("unmastered");
         }
+        // 确保 metadata 不为 null（否则 client.create 会 NPE）
+        if (entry.getMetadata() == null) {
+            entry.setMetadata(new run.halo.app.extension.Metadata());
+        }
         return client.create(entry);
     }
 
