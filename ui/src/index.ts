@@ -2,6 +2,9 @@ import { definePlugin } from '@halo-dev/ui-shared'
 import { IconBookRead } from '@halo-dev/components'
 import { markRaw } from 'vue'
 
+/* 导入玻璃拟态设计系统（包含 Tailwind 指令 + 自定义组件样式） */
+import './styles/glass.css'
+
 export default definePlugin({
   components: {},
   routes: [

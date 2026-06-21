@@ -9,3 +9,7 @@ ui/dist/
 local.properties
 .github/
 .kunsdd/
+.pnpm-store/
+.codegraph/
+.reasonix/
+reasonix.toml

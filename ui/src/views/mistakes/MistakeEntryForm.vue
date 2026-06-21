@@ -1,34 +1,19 @@
 <script setup lang="ts">
 import { ref, reactive, watch } from 'vue'
 import { axiosInstance } from '@halo-dev/api-client'
-import {
-  VButton,
-  VTag,
-  Toast,
-} from '@halo-dev/components'
+import { Toast } from '@halo-dev/components'
 import type { MistakeEntry } from '../types'
+import { difficulties, sources } from './constants'
+import { apiPaths } from '../../api/paths'
 
+/** 组件属性：entry 为待编辑的错题（undefined 表示新建） */
 const props = defineProps<{ entry?: MistakeEntry }>()
 const emit = defineEmits<{ success: []; cancel: [] }>()
 
+/** 提交中状态，防止重复提交 */
 const submitting = ref(false)
 
-// ====== 难度选项 ======
-const difficulties = [
-  { label: '简单', value: 'easy' },
-  { label: '中等', value: 'medium' },
-  { label: '困难', value: 'hard' },
-]
-
-// ====== 来源选项 ======
-const sources = [
-  { label: '考试', value: 'exam' },
-  { label: '作业', value: 'homework' },
-  { label: '测验', value: 'quiz' },
-  { label: '其他', value: 'other' },
-]
-
-// ====== 表单数据 ======
+/** 表单数据模型 */
 const form = reactive({
   subject: '',
   question: '',
@@ -42,9 +27,10 @@ const form = reactive({
   remark: '',
 })
 
+/** 新增标签的临时输入框 */
 const newTagInput = ref('')
 
-// ====== 初始化（编辑时回填） ======
+/** 编辑模式下，将 entry 数据填充到表单 */
 watch(
   () => props.entry,
   (entry) => {
@@ -64,7 +50,7 @@ watch(
   { immediate: true }
 )
 
-// ====== 标签操作 ======
+/** 添加标签 */
 function addTag() {
   const tag = newTagInput.value.trim()
   if (tag && !form.tags.includes(tag)) {
@@ -73,12 +59,13 @@ function addTag() {
   newTagInput.value = ''
 }
 
+/** 移除指定标签 */
 function removeTag(tag: string) {
   const idx = form.tags.indexOf(tag)
   if (idx >= 0) form.tags.splice(idx, 1)
 }
 
-// ====== 提交保存 ======
+/** 提交表单：校验 → POST（新建）或 PUT（更新） */
 async function handleSubmit() {
   if (!form.question.trim()) {
     Toast.warning('请输入题目')
@@ -103,22 +90,16 @@ async function handleSubmit() {
     }
 
     if (props.entry?.metadata?.name) {
-      // 更新已有记录
-      await axiosInstance.put(
-        `/api/plugins/my-plugin/mistakes/${props.entry.metadata.name}`,
-        payload
-      )
+      await axiosInstance.put(apiPaths.detail(props.entry.metadata.name), payload)
       Toast.success('更新成功')
     } else {
-      // 新建记录
-      await axiosInstance.post('/api/plugins/my-plugin/mistakes', payload)
+      await axiosInstance.post(apiPaths.create, payload)
       Toast.success('添加成功')
     }
     emit('success')
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('保存失败:', error)
-    const msg = error?.response?.data?.detail || error?.message || '保存失败'
-    Toast.error(msg.length > 50 ? '服务器内部错误，请稍后再试' : msg)
+    Toast.error('保存失败，请稍后再试')
   } finally {
     submitting.value = false
   }
@@ -126,185 +107,134 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="mistake-form" style="padding:16px;max-height:70vh;overflow-y:auto">
-
-    <!-- 1. 科目 —— 自由文本输入 -->
-    <div style="margin-bottom:16px">
-      <label style="display:block;font-size:14px;font-weight:500;color:#374151;margin-bottom:6px">
-        科目
-      </label>
-      <input
-        v-model="form.subject"
-        style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none"
-        placeholder="自由输入科目，如：高等数学、CPA会计、日语N1..."
-      />
+  <div class="space-y-5">
+    <!-- 科目 -->
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-2">科目</label>
+      <input v-model="form.subject" class="glass-input w-full" placeholder="自由输入科目，如：高等数学、CPA会计、日语N1..." />
     </div>
 
-    <!-- 2. 题目 -->
-    <div style="margin-bottom:16px">
-      <label style="display:block;font-size:14px;font-weight:500;color:#374151;margin-bottom:6px">
-        题目 <span style="color:#ef4444">*</span>
-      </label>
-      <textarea
-        v-model="form.question"
-        rows="3"
-        style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;resize:vertical"
-        placeholder="请输入题目内容..."
-      />
+    <!-- 题目 -->
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-2">题目 <span class="text-rose-400">*</span></label>
+      <textarea v-model="form.question" rows="3" class="glass-textarea w-full" placeholder="请输入题目内容..." />
     </div>
 
-    <!-- 3. 错误答案 -->
-    <div style="margin-bottom:16px">
-      <label style="display:block;font-size:14px;font-weight:500;color:#374151;margin-bottom:6px">错误答案</label>
-      <textarea
-        v-model="form.wrongAnswer"
-        rows="2"
-        style="width:100%;padding:8px 12px;border:1px solid #fca5a5;border-radius:8px;font-size:14px;outline:none;resize:vertical;background:#fff5f5"
-        placeholder="你的错误答案..."
-      />
-    </div>
-
-    <!-- 4. 正确答案 -->
-    <div style="margin-bottom:16px">
-      <label style="display:block;font-size:14px;font-weight:500;color:#374151;margin-bottom:6px">正确答案</label>
-      <textarea
-        v-model="form.correctAnswer"
-        rows="2"
-        style="width:100%;padding:8px 12px;border:1px solid #86efac;border-radius:8px;font-size:14px;outline:none;resize:vertical;background:#f0fdf4"
-        placeholder="正确答案..."
-      />
-    </div>
-
-    <!-- 5. 难度 + 来源（并排） -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-      <!-- 难度 -->
+    <!-- 错误答案 vs 正确答案（并排） -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
-        <label style="display:block;font-size:14px;font-weight:500;color:#374151;margin-bottom:6px">难度</label>
-        <div style="display:flex;gap:8px">
+        <label class="block text-sm font-medium text-gray-300 mb-2">❌ 错误答案</label>
+        <textarea
+          v-model="form.wrongAnswer"
+          rows="2"
+          class="glass-textarea w-full"
+          style="border-color: rgba(244, 63, 94, 0.3);"
+          placeholder="你的错误答案..."
+        />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">✅ 正确答案</label>
+        <textarea
+          v-model="form.correctAnswer"
+          rows="2"
+          class="glass-textarea w-full"
+          style="border-color: rgba(16, 185, 129, 0.3);"
+          placeholder="正确答案..."
+        />
+      </div>
+    </div>
+
+    <!-- 难度 + 来源 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">难度</label>
+        <div class="flex gap-2">
           <button
             v-for="d in difficulties"
             :key="d.value"
             type="button"
             @click="form.difficulty = d.value"
-            :style="{
-              padding: '6px 16px',
-              border: form.difficulty === d.value ? '2px solid #f97316' : '1px solid #d1d5db',
-              borderRadius: '8px',
-              background: form.difficulty === d.value ? '#fff7ed' : '#fff',
-              color: form.difficulty === d.value ? '#ea580c' : '#374151',
-              fontWeight: form.difficulty === d.value ? '600' : '400',
-              cursor: 'pointer',
-              fontSize: '13px',
-              transition: 'all 0.15s'
-            }"
+            :class="[
+              'px-4 py-2 rounded-xl text-sm font-medium transition-all border',
+              form.difficulty === d.value
+                ? 'bg-white/10 border-purple-500/50 text-purple-300'
+                : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
+            ]"
           >
             {{ d.label }}
           </button>
         </div>
       </div>
-
-      <!-- 来源 -->
       <div>
-        <label style="display:block;font-size:14px;font-weight:500;color:#374151;margin-bottom:6px">来源</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <label class="block text-sm font-medium text-gray-300 mb-2">来源</label>
+        <div class="flex gap-2 flex-wrap">
           <button
             v-for="s in sources"
             :key="s.value"
             type="button"
             @click="form.source = s.value"
-            :style="{
-              padding: '6px 16px',
-              border: form.source === s.value ? '2px solid #3b82f6' : '1px solid #d1d5db',
-              borderRadius: '8px',
-              background: form.source === s.value ? '#eff6ff' : '#fff',
-              color: form.source === s.value ? '#1d4ed8' : '#374151',
-              fontWeight: form.source === s.value ? '600' : '400',
-              cursor: 'pointer',
-              fontSize: '13px',
-              transition: 'all 0.15s'
-            }"
+            :class="[
+              'px-4 py-2 rounded-xl text-sm font-medium transition-all border',
+              form.source === s.value
+                ? 'bg-white/10 border-purple-500/50 text-purple-300'
+                : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
+            ]"
           >
-            {{ s.label }}
+            {{ s.icon }} {{ s.label }}
           </button>
         </div>
       </div>
     </div>
 
-    <!-- 6. 知识点 -->
-    <div style="margin-bottom:16px">
-      <label style="display:block;font-size:14px;font-weight:500;color:#374151;margin-bottom:6px">知识点 / 考点</label>
-      <input
-        v-model="form.knowledgePoint"
-        style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none"
-        placeholder="例如：拉格朗日中值定理、存货跌价准备..."
-      />
+    <!-- 知识点 -->
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-2">知识点 / 考点</label>
+      <input v-model="form.knowledgePoint" class="glass-input w-full" placeholder="例如：拉格朗日中值定理、存货跌价准备..." />
     </div>
 
-    <!-- 7. 错题分析 -->
-    <div style="margin-bottom:16px">
-      <label style="display:block;font-size:14px;font-weight:500;color:#374151;margin-bottom:6px">错题分析 / 解析</label>
-      <textarea
-        v-model="form.analysis"
-        rows="3"
-        style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;resize:vertical"
-        placeholder="分析错误原因、解题思路..."
-      />
+    <!-- 错题分析 -->
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-2">错题分析 / 解析</label>
+      <textarea v-model="form.analysis" rows="3" class="glass-textarea w-full" placeholder="分析错误原因、解题思路..." />
     </div>
 
-    <!-- 8. 标签 -->
-    <div style="margin-bottom:16px">
-      <label style="display:block;font-size:14px;font-weight:500;color:#374151;margin-bottom:6px">标签</label>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+    <!-- 标签 -->
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-2">标签</label>
+      <div class="flex flex-wrap gap-2 mb-3">
         <span
           v-for="tag in form.tags"
           :key="tag"
-          style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#f3f4f6;border-radius:20px;font-size:12px;color:#374151"
+          class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30"
         >
-          {{ tag }}
-          <span
-            @click="removeTag(tag)"
-            style="cursor:pointer;color:#9ca3af;font-size:14px;line-height:1"
-            title="删除"
-          >&times;</span>
+          #{{ tag }}
+          <button @click="removeTag(tag)" class="text-purple-400/60 hover:text-purple-300">&times;</button>
         </span>
       </div>
-      <div style="display:flex;gap:8px">
+      <div class="flex gap-2">
         <input
           v-model="newTagInput"
-          style="flex:1;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none"
+          class="glass-input flex-1"
           placeholder="输入标签后按回车添加"
           @keyup.enter="addTag"
         />
-        <VButton type="secondary" @click="addTag">添加</VButton>
+        <button @click="addTag" class="glass-btn-secondary glass-btn-sm">添加</button>
       </div>
     </div>
 
-    <!-- 9. 备注 -->
-    <div style="margin-bottom:16px">
-      <label style="display:block;font-size:14px;font-weight:500;color:#374151;margin-bottom:6px">备注</label>
-      <input
-        v-model="form.remark"
-        style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none"
-        placeholder="其他备注信息..."
-      />
+    <!-- 备注 -->
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-2">备注</label>
+      <input v-model="form.remark" class="glass-input w-full" placeholder="其他备注信息..." />
     </div>
 
-    <!-- 10. 操作按钮 -->
-    <div style="display:flex;justify-content:flex-end;gap:12px;padding-top:16px;border-top:1px solid #e5e7eb">
-      <VButton type="secondary" @click="emit('cancel')">取消</VButton>
-      <VButton type="primary" :loading="submitting" @click="handleSubmit">
+    <!-- 操作按钮 -->
+    <div class="flex justify-end gap-3 pt-4 border-t border-white/10">
+      <button @click="emit('cancel')" class="glass-btn-secondary glass-btn-sm">取消</button>
+      <button @click="handleSubmit" :disabled="submitting" class="glass-btn-primary glass-btn-sm flex items-center gap-2">
+        <span v-if="submitting" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
         {{ props.entry?.metadata?.name ? '更新' : '添加' }}
-      </VButton>
+      </button>
     </div>
   </div>
 </template>
-
-<style lang="scss" scoped>
-.mistake-form button:hover {
-  opacity: 0.85;
-}
-.mistake-form input:focus,
-.mistake-form textarea:focus {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-}
-</style>

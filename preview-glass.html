@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>错题本 · 深色玻璃拟态预览</title>
+<style>
+/* ===== Reset ===== */
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:#0f0c29;color:#fff;overflow-x:hidden}
+
+/* ===== 背景渐变 ===== */
+.page{min-height:100vh;background:linear-gradient(135deg,#1a103c 0%,#0f0c29 50%,#0a0518 100%)}
+
+/* ===== 玻璃拟态核心 ===== */
+.glass{background:rgba(255,255,255,0.05);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.1);box-shadow:0 8px 32px rgba(0,0,0,0.3);position:relative;overflow:hidden}
+.glass::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,rgba(255,255,255,0.08) 0%,transparent 50%,rgba(255,255,255,0.03) 100%);pointer-events:none;z-index:1}
+.glass>*{position:relative;z-index:2}
+
+.glass-card{background:rgba(255,255,255,0.05);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:24px;box-shadow:0 8px 32px rgba(0,0,0,0.3);position:relative;overflow:hidden;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);cursor:pointer}
+.glass-card::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,rgba(255,255,255,0.08) 0%,transparent 50%,rgba(255,255,255,0.03) 100%);pointer-events:none;z-index:1}
+.glass-card>*{position:relative;z-index:2}
+.glass-card:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.25);transform:scale(1.02);box-shadow:0 8px 32px rgba(0,0,0,0.4),0 0 20px rgba(168,85,247,0.1)}
+
+.glass-stat{background:rgba(255,255,255,0.05);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,0.3);position:relative;overflow:hidden;transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}
+.glass-stat::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,rgba(255,255,255,0.08) 0%,transparent 50%,rgba(255,255,255,0.03) 100%);pointer-events:none;z-index:1}
+.glass-stat>*{position:relative;z-index:2}
+
+/* ===== 输入框 ===== */
+.glass-input{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 16px;color:#fff;font-size:14px;transition:all 0.2s;outline:none;width:100%}
+.glass-input::placeholder{color:#6b7280}
+.glass-input:focus{border-color:rgba(168,85,247,0.5);box-shadow:0 0 0 3px rgba(168,85,247,0.15);background:rgba(255,255,255,0.08)}
+.glass-select{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 40px 12px 16px;color:#fff;font-size:14px;transition:all 0.2s;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");background-position:right 12px center;background-repeat:no-repeat;background-size:1.2em}
+.glass-select:focus{border-color:rgba(168,85,247,0.5);box-shadow:0 0 0 3px rgba(168,85,247,0.15);background:rgba(255,255,255,0.08)}
+.glass-select option{background:#1a103c;color:#fff}
+
+/* ===== 按钮 ===== */
+.glass-btn-primary{position:relative;overflow:hidden;border-radius:12px;padding:10px 20px;font-weight:600;color:#fff;border:none;cursor:pointer;background:linear-gradient(135deg,#a855f7,#7c3aed);box-shadow:0 4px 15px rgba(168,85,247,0.3);transition:all 0.3s;font-size:14px;display:inline-flex;align-items:center;gap:6px}
+.glass-btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 25px rgba(168,85,247,0.5);animation:glow 2s ease-in-out infinite alternate}
+.glass-btn-secondary{position:relative;overflow:hidden;border-radius:12px;padding:10px 20px;font-weight:500;color:#e5e7eb;border:1px solid rgba(255,255,255,0.15);cursor:pointer;background:rgba(255,255,255,0.08);transition:all 0.3s;font-size:14px;display:inline-flex;align-items:center;gap:6px}
+.glass-btn-secondary:hover{background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.25)}
+.glass-btn-sm{padding:8px 14px;font-size:13px}
+
+/* ===== 标签 ===== */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:12px;border:1px solid}
+.badge-unmastered{background:rgba(244,63,94,0.15);color:#fb7185;border-color:rgba(244,63,94,0.3);animation:breathe 2s ease-in-out infinite}
+.badge-reviewing{background:rgba(245,158,11,0.15);color:#fbbf24;border-color:rgba(245,158,11,0.3);animation:breathe 2.5s ease-in-out infinite}
+.badge-mastered{background:rgba(16,185,129,0.15);color:#34d399;border-color:rgba(16,185,129,0.3)}
+.badge-easy{background:rgba(16,185,129,0.1);color:#34d399;border-color:rgba(16,185,129,0.2)}
+.badge-medium{background:rgba(245,158,11,0.1);color:#fbbf24;border-color:rgba(245,158,11,0.2)}
+.badge-hard{background:rgba(244,63,94,0.1);color:#fb7185;border-color:rgba(244,63,94,0.2)}
+
+/* ===== 光晕 ===== */
+.glow-purple{box-shadow:0 0 15px rgba(168,85,247,0.3),0 0 30px rgba(168,85,247,0.1)}
+.glow-cyan{box-shadow:0 0 15px rgba(6,182,212,0.3),0 0 30px rgba(6,182,212,0.1)}
+.glow-emerald{box-shadow:0 0 15px rgba(16,185,129,0.3),0 0 30px rgba(16,185,129,0.1)}
+.glow-coral{box-shadow:0 0 15px rgba(244,63,94,0.3),0 0 30px rgba(244,63,94,0.1)}
+
+/* ===== 动画 ===== */
+@keyframes fadeInUp{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:0.55}}
+@keyframes glow{0%{box-shadow:0 4px 15px rgba(168,85,247,0.3)}100%{box-shadow:0 6px 30px rgba(168,85,247,0.6)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes slideIn{0%{opacity:0;transform:translateX(-20px)}100%{opacity:1;transform:translateX(0)}}
+.animate-fade{animation:fadeInUp 0.6s ease-out forwards}
+.animate-delay-1{animation-delay:0.1s}
+.animate-delay-2{animation-delay:0.2s}
+.animate-delay-3{animation-delay:0.3s}
+.animate-delay-4{animation-delay:0.4s}
+.animate-delay-5{animation-delay:0.5s}
+.card-enter{opacity:0;transform:translateY(20px)}
+.card-enter-active{transition:all 0.4s cubic-bezier(0.4,0,0.2,1)}
+
+/* ===== 布局 ===== */
+.container{max-width:1280px;margin:0 auto;padding:0 24px}
+.header{position:sticky;top:0;z-index:50;background:rgba(15,12,41,0.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08)}
+.header-inner{display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo-group{display:flex;align-items:center;gap:12px}
+.logo-box{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#a855f7,#7c3aed);display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:18px;box-shadow:0 0 15px rgba(168,85,247,0.3)}
+.header-actions{display:flex;align-items:center;gap:12px}
+
+/* ===== 统计仪表盘 ===== */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:24px 0}
+.stats-value{font-size:32px;font-weight:bold;color:#fff;margin-bottom:4px}
+.stats-label{font-size:13px;color:#9ca3af;margin-bottom:8px}
+.stats-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.progress-bar{height:4px;border-radius:999px;background:rgba(255,255,255,0.05);overflow:hidden;margin-top:8px}
+.progress-fill{height:100%;border-radius:999px;transition:width 1s ease}
+
+/* ===== 筛选栏 ===== */
+.filter-bar{background:rgba(255,255,255,0.05);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:16px;margin-bottom:24px;display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.filter-search{flex:1;min-width:200px;position:relative}
+.filter-search .icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#6b7280;font-size:14px}
+.filter-search input{padding-left:40px}
+
+/* ===== 卡片网格 ===== */
+.card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.card-grid-2{grid-template-columns:repeat(2,1fr)}
+@media(max-width:1024px){.stats-grid{grid-template-columns:repeat(2,1fr)}.card-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.stats-grid{grid-template-columns:repeat(2,1fr)}.card-grid{grid-template-columns:1fr}.card-grid-2{grid-template-columns:1fr}.container{padding:0 16px}}
+@media(max-width:480px){.stats-grid{grid-template-columns:1fr 1fr}.stats-value{font-size:24px}}
+
+/* ===== 卡片内容 ===== */
+.card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.card-subject{display:flex;align-items:center;gap:10px}
+.subject-icon{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.3s}
+.glass-card:hover .subject-icon{background:rgba(168,85,247,0.2)}
+.subject-name{font-size:14px;font-weight:500;color:#d1d5db}
+.card-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.card-actions{display:flex;gap:4px;opacity:0;transition:opacity 0.3s}
+.glass-card:hover .card-actions{opacity:1}
+.action-btn{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,0.05);border:none;color:#9ca3af;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all 0.2s}
+.action-btn:hover{background:rgba(255,255,255,0.1);color:#fff}
+.action-btn.danger:hover{background:rgba(244,63,94,0.2);color:#fb7185}
+.question-text{font-size:14px;color:#d1d5db;line-height:1.6;margin-bottom:12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-footer{padding-top:12px;border-top:1px solid rgba(255,255,255,0.05)}
+.footer-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.footer-time{font-size:12px;color:#6b7280}
+.footer-status{font-size:12px;color:#6b7280}
+.mastery-bar{height:6px;border-radius:999px;background:rgba(255,255,255,0.05);overflow:hidden}
+.mastery-fill{height:100%;border-radius:999px;transition:width 0.5s}
+
+/* ===== 空状态 ===== */
+.empty-state{text-align:center;padding:60px 20px}
+.empty-icon{font-size:48px;margin-bottom:16px}
+.empty-title{font-size:20px;font-weight:600;color:#fff;margin-bottom:8px}
+.empty-desc{color:#9ca3af;margin-bottom:24px;font-size:14px}
+
+/* ===== 详情页 ===== */
+.detail-content{max-width:800px;margin:0 auto;padding:24px 0;display:flex;flex-direction:column;gap:20px}
+.meta-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.meta-time{margin-left:auto;font-size:12px;color:#6b7280}
+.detail-section{padding:24px;border-radius:16px;background:rgba(255,255,255,0.05);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.1)}
+.detail-section-title{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600;color:#fff;margin-bottom:12px}
+.section-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.detail-text{color:#d1d5db;line-height:1.7;padding-left:42px;font-size:14px;white-space:pre-wrap}
+
+/* ===== 统计页 ===== */
+.heatmap-card{padding:24px;margin-top:24px}
+.heatmap-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.heatmap-legend{display:flex;align-items:center;gap:4px;font-size:11px;color:#6b7280}
+.legend-cell{width:14px;height:14px;border-radius:3px}
+.heatmap-wrapper{overflow-x:auto}
+.heatmap-inner{display:inline-flex;gap:3px}
+.heatmap-col{display:flex;flex-direction:column;gap:3px}
+.heatmap-cell{width:14px;height:14px;border-radius:3px;cursor:pointer;transition:all 0.15s}
+.heatmap-cell:hover{outline:2px solid rgba(255,255,255,0.3);outline-offset:1px}
+
+/* ===== Tab 导航 ===== */
+.tab-bar{display:flex;gap:0;margin-bottom:0;border-bottom:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02)}
+.tab-btn{padding:12px 24px;border:none;background:transparent;color:#6b7280;cursor:pointer;font-size:14px;border-bottom:2px solid transparent;transition:all 0.2s;margin-bottom:-1px}
+.tab-btn:hover{color:#d1d5db}
+.tab-btn.active{color:#a855f7;border-bottom-color:#a855f7;font-weight:600}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.2)}
+
+/* ===== 热力图单元格颜色 ===== */
+.hl-0{background:rgba(255,255,255,0.04)}
+.hl-1{background:rgba(16,185,129,0.2)}
+.hl-2{background:rgba(16,185,129,0.4)}
+.hl-3{background:rgba(16,185,129,0.6)}
+.hl-4{background:rgba(16,185,129,0.85)}
+</style>
+</head>
+<body>
+<div id="app" class="page">
+
+  <!-- ===== Header ===== -->
+  <header class="header">
+    <div class="container header-inner">
+      <div class="logo-group">
+        <div class="logo-box">M</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;color:#fff">我的错题本</div>
+          <div style="font-size:11px;color:#6b7280">Mistake Notebook</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="glass-btn-secondary glass-btn-sm" onclick="switchTab('stats')">
+          <span>📊</span> <span class="hide-mobile">统计</span>
+        </button>
+        <button class="glass-btn-primary glass-btn-sm" onclick="showCreateModal()">
+          <span style="font-size:16px;line-height:1">+</span> <span class="hide-mobile">录入错题</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== Tab导航 ===== -->
+  <div class="tab-bar" style="padding:0 24px">
+    <button class="tab-btn active" data-tab="list" onclick="switchTab('list')">📋 错题列表</button>
+    <button class="tab-btn" data-tab="detail" onclick="switchTab('detail')">📄 错题详情</button>
+    <button class="tab-btn" data-tab="stats" onclick="switchTab('stats')">📊 学习统计</button>
+  </div>
+
+  <!-- ===== 页面容器 ===== -->
+  <div class="container" style="padding-bottom:60px">
+
+    <!-- ==================== 列表页 ==================== -->
+    <div id="page-list">
+
+      <!-- 统计仪表盘 -->
+      <div class="stats-grid">
+        <div class="glass-stat animate-fade animate-delay-1">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+            <div class="stats-label">错题总数</div>
+            <div class="stats-icon glow-purple" style="background:rgba(168,85,247,0.15);color:#a855f7">📚</div>
+          </div>
+          <div class="stats-value">128</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:100%;background:linear-gradient(90deg,#a855f7,#c084fc);opacity:0.5"></div></div>
+        </div>
+        <div class="glass-stat animate-fade animate-delay-2">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+            <div class="stats-label">今日复习</div>
+            <div class="stats-icon glow-cyan" style="background:rgba(6,182,212,0.15);color:#06b6d4">📖</div>
+          </div>
+          <div class="stats-value">5</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:50%;background:linear-gradient(90deg,#06b6d4,#22d3ee)"></div></div>
+        </div>
+        <div class="glass-stat animate-fade animate-delay-3">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+            <div class="stats-label">掌握率</div>
+            <div class="stats-icon glow-emerald" style="background:rgba(16,185,129,0.15);color:#10b981">🎯</div>
+          </div>
+          <div class="stats-value">68<span style="font-size:18px;color:#6b7280">%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:68%;background:linear-gradient(90deg,#10b981,#34d399)"></div></div>
+        </div>
+        <div class="glass-stat animate-fade animate-delay-4">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+            <div class="stats-label">薄弱知识点</div>
+            <div class="stats-icon glow-coral" style="background:rgba(244,63,94,0.15);color:#f43f5e">⚠</div>
+          </div>
+          <div class="stats-value" style="font-size:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">高等数学</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:30%;background:linear-gradient(90deg,#f43f5e,#fb7185)"></div></div>
+        </div>
+      </div>
+
+      <!-- 筛选栏 -->
+      <div class="filter-bar animate-fade animate-delay-5">
+        <div class="filter-search">
+          <span class="icon">🔍</span>
+          <input class="glass-input" placeholder="搜索题目、科目、知识点..." />
+        </div>
+        <select class="glass-select" style="min-width:120px">
+          <option>全部科目</option>
+          <option>数学</option><option>语文</option><option>英语</option>
+          <option>物理</option><option>化学</option><option>生物</option>
+        </select>
+        <select class="glass-select" style="min-width:110px">
+          <option>全部难度</option>
+          <option>简单</option><option>中等</option><option>困难</option>
+        </select>
+        <select class="glass-select" style="min-width:110px">
+          <option>全部状态</option>
+          <option>未掌握</option><option>复习中</option><option>已掌握</option>
+        </select>
+        <div style="font-size:13px;color:#6b7280;white-space:nowrap">共 <span style="color:#fff;font-weight:500">12</span> 条</div>
+      </div>
+
+      <!-- 卡片网格 -->
+      <div class="card-grid" id="cardGrid"></div>
+    </div>
+
+    <!-- ==================== 详情页 ==================== -->
+    <div id="page-detail" style="display:none">
+      <button class="glass-btn-secondary glass-btn-sm" style="margin-bottom:20px" onclick="switchTab('list')">
+        <span>←</span> 返回列表
+      </button>
+
+      <div class="detail-content">
+        <!-- Meta -->
+        <div class="glass-card" style="cursor:default;padding:16px 24px">
+          <div class="meta-row">
+            <span class="badge badge-unmastered">● 未掌握</span>
+            <span class="badge badge-hard">困难</span>
+            <span class="badge" style="background:rgba(6,182,212,0.1);color:#22d3ee;border-color:rgba(6,182,212,0.2)">考试</span>
+            <span class="meta-time">2024年12月15日</span>
+          </div>
+        </div>
+
+        <!-- Question -->
+        <div class="detail-section">
+          <div class="detail-section-title">
+            <div class="section-icon glow-purple" style="background:rgba(168,85,247,0.2);color:#a855f7">📝</div>
+            题目
+          </div>
+          <div class="detail-text">
+已知函数 f(x) = x³ - 3x² + 2，求 f(x) 在区间 [-1, 3] 上的最大值和最小值。
+          </div>
+        </div>
+
+        <!-- Wrong vs Correct -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="detail-section" style="border-color:rgba(244,63,94,0.2)">
+            <div class="detail-section-title">
+              <div class="section-icon glow-coral" style="background:rgba(244,63,94,0.15);color:#f43f5e">✕</div>
+              错误答案
+            </div>
+            <div class="detail-text" style="color:#fb7185">
+最大值：2，最小值：-2
+            </div>
+          </div>
+          <div class="detail-section" style="border-color:rgba(16,185,129,0.2)">
+            <div class="detail-section-title">
+              <div class="section-icon glow-emerald" style="background:rgba(16,185,129,0.15);color:#10b981">✓</div>
+              正确答案
+            </div>
+            <div class="detail-text" style="color:#34d399">
+最大值：2（x=0 时取得），最小值：-2（x=2 时取得）<br>
+需注意导数 f'(x)=3x²-6x=3x(x-2)，极值点 x=0 和 x=2
+            </div>
+          </div>
+        </div>
+
+        <!-- Analysis -->
+        <div class="detail-section">
+          <div class="detail-section-title">
+            <div class="section-icon" style="background:rgba(245,158,11,0.15);color:#f59e0b">📖</div>
+            错题分析
+          </div>
+          <div class="detail-text">
+错误原因：只计算了端点值，忽略了导数等于零的极值点。<br>
+解题思路：求闭区间上最值，需先求导找极值点，再比较端点值和极值点处的函数值。
+          </div>
+        </div>
+
+        <!-- Knowledge + Tags -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="detail-section">
+            <div class="detail-section-title">
+              <div class="section-icon glow-cyan" style="background:rgba(6,182,212,0.15);color:#06b6d4">📌</div>
+              知识点
+            </div>
+            <div style="color:#d1d5db;font-size:14px;padding-left:42px">导数求最值 · 闭区间极值</div>
+          </div>
+          <div class="detail-section">
+            <div class="detail-section-title">
+              <div class="section-icon glow-purple" style="background:rgba(168,85,247,0.15);color:#a855f7">🏷</div>
+              标签
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;padding-left:42px">
+              <span class="badge" style="background:rgba(168,85,247,0.15);color:#c084fc;border-color:rgba(168,85,247,0.3)">#导数</span>
+              <span class="badge" style="background:rgba(168,85,247,0.15);color:#c084fc;border-color:rgba(168,85,247,0.3)">#最值</span>
+              <span class="badge" style="background:rgba(168,85,247,0.15);color:#c084fc;border-color:rgba(168,85,247,0.3)">#极值点</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 统计页 ==================== -->
+    <div id="page-stats" style="display:none">
+      <div style="display:flex;align-items:center;gap:12px;margin:24px 0">
+        <button class="glass-btn-secondary glass-btn-sm" onclick="switchTab('list')"><span>←</span> 返回错题本</button>
+        <h1 style="font-size:20px;font-weight:700;color:#fff">📊 学习统计</h1>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="stats-grid" style="margin-top:0">
+        <div class="glass-stat animate-fade animate-delay-1">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div class="stats-label">总记录数</div>
+            <div class="stats-icon glow-purple" style="background:rgba(168,85,247,0.15);color:#a855f7;width:32px;height:32px;font-size:14px">📚</div>
+          </div>
+          <div class="stats-value" style="font-size:28px">128</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:4px">过去一年累计</div>
+        </div>
+        <div class="glass-stat animate-fade animate-delay-2">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div class="stats-label">已掌握</div>
+            <div class="stats-icon glow-emerald" style="background:rgba(16,185,129,0.15);color:#10b981;width:32px;height:32px;font-size:14px">🎯</div>
+          </div>
+          <div class="stats-value" style="font-size:28px">87</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:4px">68% 掌握率</div>
+        </div>
+        <div class="glass-stat animate-fade animate-delay-3">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div class="stats-label">掌握率</div>
+            <div class="stats-icon glow-cyan" style="background:rgba(6,182,212,0.15);color:#06b6d4;width:32px;height:32px;font-size:14px">📈</div>
+          </div>
+          <div class="stats-value" style="font-size:28px">68<span style="font-size:14px;color:#6b7280">%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:68%;background:linear-gradient(90deg,#06b6d4,#22d3ee)"></div></div>
+        </div>
+        <div class="glass-stat animate-fade animate-delay-4">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div class="stats-label">连续打卡</div>
+            <div class="stats-icon" style="background:rgba(245,158,11,0.15);color:#f59e0b;width:32px;height:32px;font-size:14px">🔥</div>
+          </div>
+          <div class="stats-value" style="font-size:28px">7</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:4px">天</div>
+        </div>
+      </div>
+
+      <!-- Heatmap -->
+      <div class="heatmap-card glass-card" style="cursor:default">
+        <div class="heatmap-header">
+          <div>
+            <div style="font-size:15px;font-weight:600;color:#fff">学习热力图</div>
+            <div style="font-size:12px;color:#6b7280;margin-top:2px">128 条记录（过去 365 天）</div>
+          </div>
+          <div class="heatmap-legend">
+            <span>少</span>
+            <span class="legend-cell hl-0"></span>
+            <span class="legend-cell hl-1"></span>
+            <span class="legend-cell hl-2"></span>
+            <span class="legend-cell hl-3"></span>
+            <span class="legend-cell hl-4"></span>
+            <span>多</span>
+          </div>
+        </div>
+        <div class="heatmap-wrapper" id="heatmapContainer"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 示例数据 =====
+const sampleData = [
+  {subject:'数学', question:'已知函数 f(x)=x³-3x²+2，求在[-1,3]上的最值。', status:'unmastered', difficulty:'hard', tags:['导数','最值'], knowledgePoint:'导数求最值', time:'2024-12-15', source:'exam'},
+  {subject:'英语', question:'请翻译并分析：The quick brown fox jumps over the lazy dog。', status:'reviewing', difficulty:'medium', tags:['翻译','语法'], knowledgePoint:'定语从句', time:'2024-12-14', source:'homework'},
+  {subject:'物理', question:'一个质量为2kg的物体从10m高处自由落体，求落地时的速度。', status:'mastered', difficulty:'easy', tags:['运动学'], knowledgePoint:'自由落体', time:'2024-12-13', source:'quiz'},
+  {subject:'化学', question:'写出乙醇与氧气的完全燃烧化学方程式，并计算1mol乙醇完全燃烧需要的氧气量。', status:'unmastered', difficulty:'medium', tags:['有机化学','计算'], knowledgePoint:'燃烧方程式', time:'2024-12-12', source:'exam'},
+  {subject:'语文', question:'分析《静夜思》中"床前明月光"的"床"字在古汉语中的正确含义。', status:'reviewing', difficulty:'hard', tags:['古诗','字词'], knowledgePoint:'古汉语词义', time:'2024-12-11', source:'exam'},
+  {subject:'数学', question:'设A={x|x²-4x+3≤0}，B={x|2ˣ<8}，求A∩B。', status:'mastered', difficulty:'easy', tags:['集合','不等式'], knowledgePoint:'集合运算', time:'2024-12-10', source:'homework'},
+  {subject:'英语', question:'用正确的时态填空：She ___ (study) English for three years before she ___ (move) to London。', status:'unmastered', difficulty:'medium', tags:['时态','完成时'], knowledgePoint:'过去完成时', time:'2024-12-09', source:'quiz'},
+  {subject:'物理', question:'一个电路中R₁=2Ω，R₂=3Ω串联后接入12V电源，求电路总电流和R₂两端电压。', status:'reviewing', difficulty:'medium', tags:['电路','欧姆定律'], knowledgePoint:'串联电路', time:'2024-12-08', source:'homework'},
+  {subject:'化学', question:'用离子方程式表示：铁与硫酸铜溶液的反应。', status:'mastered', difficulty:'easy', tags:['离子反应'], knowledgePoint:'置换反应', time:'2024-12-07', source:'exam'},
+  {subject:'语文', question:'请写出"但愿人长久，千里共婵娟"的作者及创作背景。', status:'unmastered', difficulty:'medium', tags:['古诗词','文学常识'], knowledgePoint:'宋词鉴赏', time:'2024-12-06', source:'quiz'},
+  {subject:'数学', question:'求椭圆 x²/16 + y²/9 = 1 的焦点坐标和离心率。', status:'reviewing', difficulty:'hard', tags:['解析几何','椭圆'], knowledgePoint:'圆锥曲线', time:'2024-12-05', source:'exam'},
+  {subject:'生物', question:'简述光合作用中光反应和暗反应的主要过程及区别。', status:'mastered', difficulty:'medium', tags:['光合作用'], knowledgePoint:'细胞代谢', time:'2024-12-04', source:'exam'},
+];
+
+const statusConfig = {
+  unmastered:{label:'未掌握',cls:'badge-unmastered',icon:'●'},
+  reviewing:{label:'复习中',cls:'badge-reviewing',icon:'◐'},
+  mastered:{label:'已掌握',cls:'badge-mastered',icon:'●'}
+};
+const difficultyConfig = {
+  easy:{label:'简单',cls:'badge-easy'},
+  medium:{label:'中等',cls:'badge-medium'},
+  hard:{label:'困难',cls:'badge-hard'}
+};
+const subjectIcons = {
+  '数学':'∑','语文':'文','英语':'A','物理':'⚛','化学':'⚗','生物':'🧬'
+};
+
+function getColor(status){
+  if(status==='mastered') return 'background:linear-gradient(90deg,#10b981,#34d399)';
+  if(status==='reviewing') return 'background:linear-gradient(90deg,#f59e0b,#fbbf24)';
+  return 'background:linear-gradient(90deg,#f43f5e,#fb7185)';
+}
+function getWidth(status){
+  if(status==='mastered') return '100%';
+  if(status==='reviewing') return '60%';
+  return '20%';
+}
+
+function renderCards(){
+  const grid = document.getElementById('cardGrid');
+  grid.innerHTML = sampleData.map((item,i) => {
+    const status = statusConfig[item.status]||statusConfig.unmastered;
+    const diff = difficultyConfig[item.difficulty]||difficultyConfig.medium;
+    const icon = subjectIcons[item.subject]||'📝';
+    return `<div class="glass-card" style="animation:fadeInUp 0.5s ease-out ${0.05*i}s both">
+      <div class="card-header">
+        <div class="card-subject">
+          <div class="subject-icon">${icon}</div>
+          <div>
+            <div class="subject-name">${item.subject}</div>
+            <div class="card-tags">
+              <span class="badge ${status.cls}"><span style="font-size:8px">${status.icon}</span> ${status.label}</span>
+              <span class="badge ${diff.cls}">${diff.label}</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="action-btn" onclick="event.stopPropagation();switchTab('detail')">✎</button>
+          <button class="action-btn danger" onclick="event.stopPropagation()">✕</button>
+        </div>
+      </div>
+      <div class="question-text">${item.question}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        ${item.tags.map(t=>`<span style="font-size:11px;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,0.04);color:#9ca3af;border:1px solid rgba(255,255,255,0.05)">#${t}</span>`).join('')}
+      </div>
+      <div style="font-size:12px;color:rgba(168,85,247,0.6);margin-bottom:10px;display:flex;align-items:center;gap:4px">
+        📌 <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.knowledgePoint}</span>
+      </div>
+      <div class="card-footer">
+        <div class="footer-row">
+          <span class="footer-time">${item.time} 记录</span>
+          <span class="footer-status">${status.label}</span>
+        </div>
+        <div class="mastery-bar">
+          <div class="mastery-fill" style="${getColor(item.status)};width:${getWidth(item.status)}"></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== 热力图 =====
+function renderHeatmap(){
+  const container = document.getElementById('heatmapContainer');
+  const today = new Date();
+  const start = new Date(today); start.setDate(start.getDate()-364);
+  
+  // 生成模拟数据
+  const data = {};
+  for(let i=0;i<365;i++){
+    const d = new Date(start); d.setDate(d.getDate()+i);
+    const key = d.toISOString().split('T')[0];
+    data[key] = Math.floor(Math.random()*5);
+  }
+  // 让近几天有数据
+  const now = new Date().toISOString().split('T')[0];
+  data[now] = 3;
+  const yesterday = new Date(Date.now()-86400000).toISOString().split('T')[0];
+  data[yesterday] = 2;
+
+  const cells = [];
+  for(let i=0;i<365;i++){
+    const d = new Date(start); d.setDate(d.getDate()+i);
+    const key = d.toISOString().split('T')[0];
+    cells.push({date:key, level:data[key]||0});
+  }
+
+  const startDay = start.getDay();
+  const weeks = [];
+  let week = [];
+  for(let i=0;i<startDay;i++) week.push({level:-1});
+  for(const c of cells){week.push(c);if(week.length===7){weeks.push(week);week=[];}}
+  if(week.length>0) weeks.push(week);
+
+  const monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  const monthLabels = [];
+  let lastM=-1;
+  weeks.forEach((w,ci)=>{
+    const cell = w.find(c=>c.date);
+    if(cell){
+      const m = new Date(cell.date).getMonth();
+      if(m!==lastM){monthLabels.push({name:monthNames[m],col:ci});lastM=m;}
+    }
+  });
+
+  let html = '<div style="display:inline-block">';
+  // Month labels
+  html += '<div style="display:flex;margin-left:28px;gap:3px;margin-bottom:4px">';
+  monthLabels.forEach((ml,i)=>{
+    const margin = i>0 ? (ml.col - monthLabels[i-1].col - 1)*17 : ml.col*17 + 0;
+    html += `<span style="font-size:10px;color:#6b7280;min-width:14px;${i>0?'margin-left:'+margin+'px':''}">${ml.name}</span>`;
+  });
+  html += '</div>';
+
+  // Grid
+  html += '<div style="display:flex;gap:3px">';
+  // Weekday labels
+  html += '<div style="display:flex;flex-direction:column;gap:3px;margin-right:4px">';
+  ['','一','','三','','五',''].forEach(d=>{
+    html += `<span style="font-size:9px;color:#4b5563;height:14px;display:flex;align-items:center">${d}</span>`;
+  });
+  html += '</div>';
+
+  weeks.forEach(w=>{
+    html += '<div style="display:flex;flex-direction:column;gap:3px">';
+    w.forEach(c=>{
+      if(c.level<0) html += '<div style="width:14px;height:14px"></div>';
+      else html += `<div class="heatmap-cell hl-${c.level}" title="${c.date}: ${c.level} 题"></div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+// ===== Tab 切换 =====
+function switchTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-list').style.display = tab==='list' ? 'block' : 'none';
+  document.getElementById('page-detail').style.display = tab==='detail' ? 'block' : 'none';
+  document.getElementById('page-stats').style.display = tab==='stats' ? 'block' : 'none';
+  const btn = document.querySelector(`[data-tab="${tab}"]`);
+  if(btn) btn.classList.add('active');
+}
+
+function showCreateModal(){
+  alert('✨ 录入错题弹窗\n（在实际Halo插件中，这里会打开玻璃拟态表单弹窗）');
+}
+
+// ===== 初始化 =====
+renderCards();
+renderHeatmap();
+</script>
+</body>
+</html>
